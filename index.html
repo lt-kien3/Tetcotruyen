@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title> Ẩm Thực Tết Việt Nam</title>
+  <style>
+    /* ---------- Cơ bản ---------- */
+    :root{
+      --bg:#f7f7f8; --card:#ffffff; --muted:#666; --accent:#b91c1c;
+      --glass: rgba(255,255,255,0.6);
+    }
+    body{ margin:0; font-family: "Segoe UI", Roboto, Arial, sans-serif; background:var(--bg); color:#111; transition: .25s }
+    .dark { --bg:#0b0b0c; --card:#121214; --muted:#bfc3c7; --accent:#f97316; --glass: rgba(255,255,255,0.04); color:#eee; }
+    .container{ max-width:1000px; margin:24px auto; padding:16px; }
+
+    header{ display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px;}
+    .brand { display:flex; gap:12px; align-items:center; }
+    .logo{ width:56px; height:56px; border-radius:10px; background:linear-gradient(135deg,#f97316,#ef4444); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; }
+    h1{ margin:0; font-size:20px; }
+    .subtitle{ color:var(--muted); font-size:13px; }
+
+    /* menu chức năng (Tin tức / Bình luận / Phân tích) */
+    nav{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .menu-btn{ background:transparent; border:1px solid rgba(0,0,0,0.06); padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
+    .menu-btn.active{ background:var(--accent); color:white; border-color:transparent; }
+
+    /* search + controls */
+    .controls{ display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap; }
+    .search{ padding:8px 10px; border-radius:10px; border:1px solid rgba(0,0,0,0.08); width:240px; }
+    .select{ padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.08); }
+    .small-btn{ padding:8px 10px; border-radius:8px; border:0; cursor:pointer; }
+
+    /* layout */
+    main { display:grid; grid-template-columns: 1fr 300px; gap:18px; align-items:start; }
+    .card{ background:var(--card); border-radius:12px; padding:14px; box-shadow: 0 6px 18px rgba(16,24,40,0.06); }
+    .post{ margin-bottom:14px; padding-bottom:10px; border-bottom:1px dashed rgba(0,0,0,0.05); }
+    .post:last-child{ border-bottom:0; }
+    .post h3{ margin:0 0 6px 0; }
+    .meta{ font-size:13px; color:var(--muted); margin-bottom:8px; }
+    .excerpt{ font-size:14px; color:inherit; margin-bottom:10px; }
+
+    .post-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+    .btn-like, .btn-book{ padding:6px 10px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); cursor:pointer; background:transparent; }
+    .btn-like.liked{ background:#fee2e2; border-color:rgba(239,68,68,0.3); }
+    .btn-book.booked{ background:#ecfeff; border-color:rgba(6,182,212,0.2); }
+
+    /* right column */
+    aside .section{ margin-bottom:12px; }
+    .tag{ display:inline-block; padding:6px 8px; border-radius:20px; border:1px solid rgba(0,0,0,0.06); margin:4px 4px 0 0; cursor:pointer; font-size:13px; }
+
+    /* modal đọc bài */
+    .modal-bg{ position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:60; }
+    .modal{ width:90%; max-width:820px; max-height:90vh; overflow:auto; border-radius:12px; padding:18px; background:var(--card); box-shadow:0 10px 30px rgba(2,6,23,0.6); }
+
+    /* comment area */
+    .comments{ margin-top:12px; }
+    .comment{ padding:8px; border-radius:8px; background:var(--glass); margin-bottom:8px; font-size:14px; }
+
+    footer{ text-align:center; margin-top:22px; color:var(--muted); font-size:13px; }
+
+    @media (max-width:900px){
+      main{ grid-template-columns:1fr; }
+      .logo{ width:46px; height:46px; font-size:16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">TẾT</div>
+        <div>
+          <h1> Ẩm Thực Tết Việt Nam</h1>
+          <div class="subtitle">Món ăn truyền thống — Câu chuyện & phân tích</div>
+        </div>
+      </div>
+
+      <div>
+        <button class="small-btn" id="darkToggle">🌙 Dark</button>
+      </div>
+    </header>
+
+    <!-- menu chức năng chính -->
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+      <nav id="mainMenu">
+        <button class="menu-btn active" data-category="all" onclick="filterByCategory('all', this)">📰 Tin tức</button>
+        <button class="menu-btn" data-category="commentary" onclick="filterByCategory('commentary', this)">💬 Bình luận</button>
+        <button class="menu-btn" data-category="analysis" onclick="filterByCategory('analysis', this)">📊 Phân tích</button>
+      </nav>
+    </div>
+
+    <!-- controls -->
+    <div class="controls">
+      <input class="search" id="searchInput" placeholder="Tìm kiếm theo tiêu đề hoặc nguyên liệu..." oninput="applyFilters()" />
+      <select class="select" id="regionSelect" onchange="applyFilters()">
+        <option value="all">Tất cả vùng</option>
+        <option value="bac">Miền Bắc</option>
+        <option value="trung">Miền Trung</option>
+        <option value="nam">Miền Nam</option>
+      </select>
+      <button class="small-btn" onclick="clearFilters()">Xóa filter</button>
+      <div style="margin-left:auto; color:var(--muted); font-size:13px; align-self:center;">Mẹo: bấm vào tiêu đề để đọc chi tiết</div>
+    </div>
+
+    <main>
+      <!-- cột bài viết -->
+      <section>
+        <div class="card" id="postsContainer">
+          <!-- Posts sẽ được render bởi JavaScript -->
+        </div>
+      </section>
+
+      <!-- cột phải: sidebar -->
+      <aside>
+        <div class="card section">
+          <h4>Chức năng nhanh</h4>
+          <div style="margin-top:8px;">
+            <div class="tag" onclick="applyQuick('banh-chung')">Bánh chưng</div>
+            <div class="tag" onclick="applyQuick('mut-tet')">Mứt Tết</div>
+            <div class="tag" onclick="applyQuick('dua-hanh')">Dưa hành</div>
+            <div class="tag" onclick="applyQuick('thit-kho')">Thịt kho</div>
+            <div class="tag" onclick="applyQuick('banh-tet')">Bánh tét</div>
+            <div class="tag" onclick="applyQuick('canh-mang')">Canh măng</div>
+          </div>
+        </div>
+
+        <div class="card section">
+          <h4>Bài đã lưu</h4>
+          <div id="bookmarksList" style="margin-top:8px; color:var(--muted)">Bạn chưa lưu bài nào.</div>
+        </div>
+
+        <div class="card section">
+          <h4>Đăng ký nhận tin</h4>
+          <p style="margin:8px 0 10px 0; color:var(--muted); font-size:13px">Nhập email để nhận gợi ý món ăn ngày Tết.</p>
+          <input id="emailSub" placeholder="you@example.com" style="width:100%; padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.08)" />
+          <div style="margin-top:8px; display:flex; gap:8px;">
+            <button class="small-btn" onclick="subscribe()">Đăng ký</button>
+            <button class="small-btn" onclick="alert('Cảm ơn!')">Hủy</button>
+          </div>
+        
+        </div>
+        <div class="card section">
+  <h4></h4>
+  <img src="https://chuaxaloi.vn/upload/hinhanh/goc_chia_se/Goc_chia_se_1.jpg" alt="Góc chia sẻ" style="width:100%; border-radius:12px; margin-bottom:10px; object-fit:cover;">
+  <p>Ngày Tết không chỉ là dịp để thưởng thức những món ngon truyền thống, mà còn là thời điểm để mỗi người sẻ chia câu chuyện, ký ức và cảm xúc của mình. Mỗi chia sẻ đều mang màu sắc riêng: có người nhớ về hương vị mứt dừa mẹ làm, có người xúc động khi kể lại cảnh cả gia đình gói bánh chưng thâu đêm. Góc bạn đọc chính là nơi để mọi người gửi gắm tâm tình, để thấy rằng dù ở đâu, Tết vẫn là sợi dây gắn kết yêu thương. Những dòng chia sẻ mộc mạc ấy góp phần lưu giữ nét đẹp văn hóa, nuôi dưỡng ký ức Tết và làm phong phú thêm bức tranh mùa xuân Việt Nam.</p>
+</div>
+      </aside>
+    </main>
+
+    <footer>© 2025 — Blog Ẩm Thực Tết Việt Nam </footer>
+  </div>
+
+  <!-- Modal hiển thị bài viết -->
+  <div id="modalRoot" class="hidden"></div>
+
+  <script>
+    // dữ liệu bài viết mẫu
+    const POSTS = [
+      {
+        id:1,
+        title:"Bánh chưng — Linh hồn mâm cỗ Tết miền Bắc",
+        category:"analysis",
+        region:"bac",
+        tags:["banh-chung","nienguyen","gac"],
+        date:"2025-01-20",
+        excerpt:"Bánh chưng không đơn thuần là một món ăn, mà đã trở thành biểu tượng văn hóa, linh hồn của Tết cổ truyền Việt Nam. Mỗi khi hương vị nồng nàn của nếp, đậu, thịt quyện với lá dong xanh tỏa ra từ nồi bánh đêm giao thừa, là lòng người lại rạo rực cảm nhận không khí Tết trọn vẹn nhất. Chiếc bánh vuông vức, xanh mướt mang đậm triết lý nhân sinh sâu sắc: tượng trưng cho Đất Mẹ bao la, với màu xanh của cỏ cây sự sống, nhân bánh bên trong là sự hòa quyện của trời đất, âm dương. Hơn cả giá trị vật chất, bánh chưng là minh chứng cho tấm lòng hiếu thảo, sự biết ơn tổ tiên qua sự tích Lang Liêu, và là sợi dây gắn kết gia đình khi mọi người cùng quây quần gói, nấu và canh bánh. Trên mâm cỗ cúng ông bà, bánh chưng thể hiện lòng thành kính; trong bữa cơm đoàn viên, nó mang lại hương vị ấm no, hạnh phúc. Giữa nhịp sống hiện đại, hình ảnh và hương vị ấy vẫn nguyên vẹn, như một lời nhắc nhở thiêng liêng về cội nguồn, khiến Tết Việt mãi đậm đà bản sắc ",
+        content:`<p>Bánh chưng là một trong những món không thể thiếu trên mâm cỗ Tết miền Bắc. Để làm bánh chưng ngon, người làm phải chọn gạo nếp dẻo, đậu xanh đãi kỹ, lá dong tươi và thịt ba chỉ tươi ngon. Quá trình gói và luộc bánh thường là hoạt động gia đình kéo dài nhiều giờ, tạo nên không khí đoàn viên.</p>
+                 <h4>Một vài lưu ý khi nấu</h4>
+                 <ul>
+                   <li>Ngâm gạo nếp đủ thời gian để đảm bảo dẻo.</li>
+                   <li>Ướp thịt vừa miệng, kết hợp mắm muối và tiêu.</li>
+                   <li>Luộc ít nhất 6–8 tiếng để nhân chín đều.</li>
+                <img src="https://www.huongnghiepaau.com/wp-content/uploads/2024/06/cach-lam-banh-chung.jpg" 
+
+                 </ul>`  
+      },
+      {
+        id:2,
+        title:"Mứt Tết – ngọt ngào đầu xuân",
+        category:"commentary",
+        region:"nam",
+        tags:["mut-tet","dua","man","coconut"],
+        date:"2025-01-18",
+        excerpt:"Mỗi dịp Tết đến xuân về, mứt Tết luôn hiện diện trên bàn trà như một biểu tượng của sự đoàn viên, sum vầy. Những viên mứt nhỏ xinh, nhiều màu sắc, vừa ngọt ngào vừa bắt mắt, gợi nhắc đến hương vị tuổi thơ và không khí rộn ràng đầu năm mới. Người Việt thường bày mứt trong khay ngũ quả để đãi khách, kèm theo chén trà nóng, tạo nên sự tiếp đãi nồng hậu, gần gũi. Vị ngọt của mứt mang ý nghĩa mong cầu cho năm mới vẹn toàn, cuộc sống thêm phần ngọt ngào, hạnh phúc. Qua bao thế hệ, dù thời gian thay đổi, mứt Tết vẫn giữ nguyên giá trị truyền thống, là món quà tinh thần không thể thiếu, làm phong phú thêm văn hóa ẩm thực ngày Tết và lưu giữ những kỷ niệm ấm áp bên gia đình.",
+        content:`<p>Trong kho tàng ẩm thực ngày Tết, các loại mứt truyền thống như mứt dừa, mứt gừng, mứt bí, mứt hạt sen đã gắn liền với ký ức của nhiều thế hệ. Mứt dừa thơm bùi, mứt gừng cay ấm, mứt bí ngọt thanh hay mứt sen bùi ngậy, mỗi loại đều mang hương vị riêng nhưng khi kết hợp lại tạo nên bức tranh phong phú cho ngày xuân. Người Việt thường tự tay làm mứt để gửi gắm tình cảm, sự chăm chút cho gia đình. Hộp mứt đầy đủ sắc màu không chỉ dùng để tiếp khách mà còn tượng trưng cho sự sung túc, đủ đầy. Đằng sau vị ngọt thanh, cay nhẹ ấy là ý nghĩa cầu chúc năm mới mạnh khỏe, may mắn và tràn ngập niềm vui. Chính sự mộc mạc, giản dị nhưng đậm đà ấy đã khiến mứt truyền thống trở thành linh hồn của Tết Việt</p>
+                 <p><b>Ý nghĩa:</b> Những đĩa mứt là lời chúc ngọt ngào cho năm mới.</p>`
+      },
+      {
+        id:3,
+        title:"Dưa hành, củ kiệu – vị chua cay ngày Tết",
+        category:"news",
+        region:"bac",
+        tags:["dua-hanh","cu kieu",],
+        date:"2025-01-15",
+        excerpt:"Dưa hành và củ kiệu là món ăn kèm không thể thiếu trên mâm cơm ngày Tết của người Việt. Vị chua thanh, cay nồng nhẹ nhàng của dưa hành và củ kiệu giúp cân bằng lại sự béo ngậy của các món ăn chính như thịt mỡ, bánh chưng, bánh tét. Củ kiệu trắng giòn, thêm chút hăng hăng, được muối từ trước Tết vài tuần để kịp cho ngày đầu năm mới. Dưa hành thì lại đơn giản, chỉ cần vài củ hành tím, chút muối và nước mắm là đã có ngay hương vị truyền thống. Ăn một miếng củ kiệu giòn tan, vị cay nhẹ lan tỏa, vừa đưa cơm vừa gợi nhớ hương vị quê nhà. Đây chính là món ăn gắn liền với ký ức tuổi thơ của nhiều người, gợi lại không khí sum vầy ấm áp.",
+        content:`<p>Dưa hành và củ kiệu là món ăn kèm quen thuộc trong mâm cơm ngày Tết Việt. Vị chua thanh, cay nhẹ giúp cân bằng sự béo ngậy của bánh chưng, thịt mỡ, bánh tét. Củ kiệu giòn trắng, dưa hành đơn giản mà đậm đà hương vị truyền thống, gợi nhớ ký ức sum vầy và hương Tết quê nhà.</p>`
+      },
+      {
+        id:4,
+        title:"Thịt kho tàu, khổ qua nhồi thịt",
+        category:"analysis",
+        region:"nam",
+        tags:["thit-kho","kho-qua","thit"],
+        date:"2025-01-10",
+        excerpt:"Người miền Nam thường có thói quen chuẩn bị nồi thịt kho tàu lớn trong những ngày Tết để ăn dần. Thịt ba chỉ hoặc thịt đùi được cắt miếng to, kho cùng trứng vịt trong nước dừa, cho ra màu nâu cánh gián đẹp mắt. Vị mặn ngọt hòa quyện, thịt mềm mà không ngấy, trứng thấm đẫm gia vị, chan với cơm trắng thì ngon khó cưỡng. Bên cạnh đó, món khổ qua nhồi thịt cũng mang ý nghĩa đặc biệt: cầu mong năm mới “khổ qua đi, may mắn đến”. Khổ qua xanh mướt, nhồi đầy nhân thịt băm, nấm mèo, rồi hầm cho mềm nhưng vẫn giữ vị đăng đắng đặc trưng. Chính vị đắng ấy lại làm món ăn thêm cân bằng, nhắc nhở con người biết trân trọng ngọt bùi sau khó khăn.",
+        content:`<p>Người miền Nam đón Tết với thịt kho tàu nước dừa đậm đà và khổ qua nhồi thịt mang ý nghĩa “khổ qua, may mắn đến” – vừa ngon miệng vừa thấm đẫm hương vị, tinh thần ngày xuân.</p>`
+      },
+      {
+        id:5,
+        title:"Hạt dưa, hạt bí – món nhâm nhi quen thuộc",
+        category:"news",
+        region:"bac",
+        tags:["hat-dua","hat-bi","hat"],
+        date:"2025-01-15",
+        excerpt:"Bên cạnh mứt ngọt, hạt dưa và hạt bí là món nhâm nhi quen thuộc, gắn liền với phong tục ngày Tết của người Việt. Khi quây quần bên nhau, người lớn thường vừa trò chuyện, vừa tách hạt, thưởng thức hương vị bùi béo giản dị mà thân quen. Hạt dưa đỏ tượng trưng cho may mắn, tài lộc, trong khi hạt bí lại thanh mát, nhẹ nhàng, hợp với nhiều lứa tuổi. Những tiếng cười rộn ràng xen lẫn âm thanh lách tách khi tách hạt tạo nên không khí ấm áp, gần gũi trong ngày đầu năm. Đây không chỉ là món ăn chơi, mà còn là cầu nối tình thân, lưu giữ khoảnh khắc sum vầy. Qua năm tháng, dù có nhiều món ăn mới lạ xuất hiện, hạt dưa, hạt bí vẫn luôn giữ vị trí đặc biệt, trở thành biểu tượng mộc mạc nhưng đầy ý nghĩa trong văn hóa Tết Việt.",
+        content:`<p>Nhâm nhi hạt dưa, hạt bí ngày xuân, thưởng vị giản dị mà ấm áp, lưu giữ khoảnh khắc đoàn viên hạnh phúc.</p>`
+      },
+      {
+        id:6,
+        title:"Giò chả, canh măng ",
+        category:"news",
+        region:"bac",
+        tags:["canh-mang","gio-cha",],
+        date:"2025-01-15",
+        excerpt:"Trên mâm cơm Tết miền Bắc, giò chả và canh măng khô gần như trở thành biểu tượng của sự no đủ, tròn đầy. Giò lụa trắng ngần, chắc tay, được gói bằng lá chuối xanh mướt, khi cắt ra từng khoanh đều tăm tắp. Chả quế thơm lừng, vị đậm đà, ăn kèm cùng bánh chưng là chuẩn vị Tết Bắc. Bên cạnh đó, bát canh măng khô ninh xương nóng hổi chính là linh hồn của mâm cỗ. Nước canh trong, dậy mùi thơm của măng và xương, từng miếng măng vàng nâu mềm nhưng vẫn giữ được độ dai nhẹ. Khi gia đình quây quần bên mâm cơm, thưởng thức lát giò chả cùng thìa canh măng nóng, mọi hương vị của Tết dường như ùa về, gắn kết thêm tình thân trong không khí se lạnh của mùa xuân miền Bắc.",
+        content:`<p>Mâm cỗ Tết miền Bắc không thể thiếu giò chả trắng ngần, chả quế thơm lừng ăn kèm bánh chưng, cùng bát canh măng khô ninh xương nóng hổi. Những hương vị truyền thống ấy vừa ngon miệng vừa gắn kết tình thân trong không khí xuân se lạnh.</p>`
+      },
+      {
+        id:7,
+        title:"Nem chua, tré, bánh tổ ",
+        category:"news",
+        region:"trung",
+        tags:["nem-chua","tre","banh-to"],
+        date:"2025-01-15",
+        excerpt:"Tết miền Trung nổi bật với những món ăn kèm mang hương vị riêng biệt, vừa dân dã vừa đậm đà. Nem chua được gói bằng lá chuối, thịt lên men tạo nên vị chua dịu, hơi cay của tỏi ớt, ăn kèm chút rau sống thì ngon không gì sánh bằng. Tré lại là sự kết hợp của tai heo, thịt ba chỉ thái mỏng, trộn cùng riềng, mè rang, lá ổi rồi ủ lên men, tạo vị chua cay mặn ngọt hòa quyện. Đây là món nhậu khoái khẩu trong ngày Tết. Ngoài ra, bánh tổ – món bánh dẻo ngọt làm từ nếp, đường thắng – thường được hấp hoặc chiên, có màu nâu vàng óng ánh, dẻo thơm đặc trưng. Những món ăn này không chỉ để thưởng thức mà còn thể hiện sự tinh tế và phong phú trong văn hóa ẩm thực Tết miền Trung, mang lại dư vị khó quên cho mỗi thực khách.",
+        content:`<p>Tết miền Trung mang hương vị riêng với nem chua chua cay, tré giòn đậm đà và bánh tổ dẻo ngọt. Những món ăn dân dã ấy vừa ngon miệng vừa thể hiện nét tinh tế, phong phú trong ẩm thực ngày xuân.</p>`
+      },
+      {
+        id:8,
+        title:"Bánh Tét – Hương Vị Tết Phương Nam",
+        category:"news",
+        region:"nam",
+        tags:["banh-tet","dac san","mien nam"],
+        date:"2025-01-15",
+        excerpt:"Nếu miền Bắc có bánh chưng xanh vuông vức, thì miền Nam lại đón Tết với hương vị đặc trưng từ những đòn bánh tét tròn dài, gói ghém trọn vẹn cái tình của vùng đất phương Nam. Bánh tét không chỉ là lễ vật dâng lên tổ tiên mà còn là minh chứng cho sự giao thoa văn hóa và sáng tạo trong ẩm thực. Nguyên liệu vẫn là gạo nếp, đậu xanh, thịt heo, nhưng được biến tấu với nhân chuối, đậu đen… và đặc biệt là hình trụ tròn, được gói bằng lá chuối tươi. Hương vị bánh tét là sự kết hợp độc đáo: vị dẻo thơm của nếp, bùi bùi của đậu, béo ngậy của thịt mỡ, và mùi thơm nồng của lá chuối. Mỗi khoanh bánh tét vàng ươm, điểm xuyết nhân đậu xanh, ăn kèm với củ kiệu chua ngọt hay dưa giá, đã trở thành hương vị không thể quên trong mâm cơm Tết của mỗi gia đình Nam Bộ, thể hiện sự phóng khoáng, ấm áp và nghĩa tình sâu nặng.",
+        content:`<p>Nguyên liệu: Gạo nếp, đậu xanh, thịt ba chỉ, gia vị, lá chuối, dây buộc. <br>
+
+Cách làm: Ngâm nếp và đậu xanh, hấp đậu rồi vo viên. Thịt ba chỉ ướp gia vị. Trải lá chuối, cho nếp – đậu – thịt – đậu – nếp, gói tròn, buộc chặt. <br>
+
+Nấu: Luộc bánh 6–8 tiếng, châm thêm nước sôi liên tục, vớt ra rửa sạch, treo ráo.<br>
+
+👉 Thành phẩm: Bánh tét dẻo thơm, nhân đậm đà, khoanh tròn đẹp mắt.</p>`
+      },
+    ];
+
+    // trạng thái
+    let state = {
+      activeMenu: 'all', // all/commentary/analysis
+      region: 'all',
+      query: '',
+      bookmarks: JSON.parse(localStorage.getItem('tTetBookmarks')||'[]'),
+    };
+
+    // DOM refs
+    const postsContainer = document.getElementById('postsContainer');
+    const bookmarksList = document.getElementById('bookmarksList');
+    const modalRoot = document.getElementById('modalRoot');
+
+    function renderPosts(){
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const region = document.getElementById('regionSelect').value;
+      postsContainer.innerHTML = '';
+
+      // filter
+      const filtered = POSTS.filter(p => {
+        if(state.activeMenu !== 'all' && p.category !== state.activeMenu) return false;
+        if(region !== 'all' && p.region !== region) return false;
+        if(q && !(p.title.toLowerCase().includes(q) || p.excerpt.toLowerCase().includes(q) || p.tags.join(' ').includes(q))) return false;
+        return true;
+      });
+
+      if(filtered.length === 0){
+        postsContainer.innerHTML = '<div style="padding:16px; color:var(--muted)">Không tìm thấy bài viết.</div>';
+        return;
+      }
+
+      filtered.forEach(p => {
+        const postEl = document.createElement('div');
+        postEl.className = 'post';
+        postEl.innerHTML = `
+          <h3 style="cursor:pointer" onclick="openPost(${p.id})">${p.title}</h3>
+          <div class="meta">${p.date} • ${p.category === 'analysis' ? 'Phân tích' : p.category === 'commentary' ? 'Bình luận' : 'Tin tức'} • ${regionLabel(p.region)}</div>
+          <div class="excerpt">${p.excerpt}</div>
+          <div class="post-actions">
+            <button class="btn-like" data-id="${p.id}" onclick="toggleLike(event, ${p.id})">❤️ <span id="likes-${p.id}">0</span></button>
+            <button class="btn-book" data-id="${p.id}" onclick="toggleBookmark(event, ${p.id})">☆ Lưu</button>
+            <button class="small-btn" onclick="share(${p.id})">🔗 Chia sẻ</button>
+            <div style="margin-left:auto; color:var(--muted); font-size:13px">Tags: ${p.tags.map(t=>`<span style="font-size:13px;padding:4px 8px;border-radius:6px;margin-right:6px;background:rgba(0,0,0,0.04)">${t}</span>`).join('')}</div>
+          </div>
+        `;
+        postsContainer.appendChild(postEl);
+      });
+
+      renderBookmarks();
+    }
+
+    function regionLabel(code){
+      if(code==='bac') return 'Miền Bắc';
+      if(code==='trung') return 'Miền Trung';
+      if(code==='nam') return 'Miền Nam';
+      return 'Toàn quốc';
+    }
+
+    // Menu filter
+    function filterByCategory(cat, el){
+      state.activeMenu = cat;
+      // active class handling
+      document.querySelectorAll('#mainMenu .menu-btn').forEach(b=>b.classList.remove('active'));
+      el.classList.add('active');
+      renderPosts();
+    }
+
+    // Quick tag filter
+    function applyQuick(tag){
+      document.getElementById('searchInput').value = tag;
+      applyFilters();
+    }
+
+    // Apply filters from controls
+    function applyFilters(){
+      state.region = document.getElementById('regionSelect').value;
+      state.query = document.getElementById('searchInput').value.trim().toLowerCase();
+      renderPosts();
+    }
+
+    function clearFilters(){
+      document.getElementById('searchInput').value = '';
+      document.getElementById('regionSelect').value = 'all';
+      state.query = '';
+      state.region = 'all';
+      filterByCategory('all', document.querySelector('#mainMenu .menu-btn[data-category="all"]'));
+      renderPosts();
+    }
+
+    // Like (client-only)
+    const likes = {}; // store counts in-memory
+    function toggleLike(ev, id){
+      ev.stopPropagation();
+      likes[id] = (likes[id]||0) + 1;
+      document.getElementById('likes-'+id).innerText = likes[id];
+      const btn = ev.currentTarget;
+      btn.classList.add('liked');
+    }
+
+    // Bookmark (saved to localStorage)
+    function toggleBookmark(ev, id){
+      ev.stopPropagation();
+      const i = state.bookmarks.indexOf(id);
+      if(i === -1){
+        state.bookmarks.push(id);
+      } else {
+        state.bookmarks.splice(i,1);
+      }
+      localStorage.setItem('tTetBookmarks', JSON.stringify(state.bookmarks));
+      renderBookmarks();
+      // update button styles
+      renderPosts();
+    }
+
+    function renderBookmarks(){
+      if(state.bookmarks.length === 0){
+        bookmarksList.innerHTML = 'Bạn chưa lưu bài nào.';
+        return;
+      }
+      bookmarksList.innerHTML = '';
+      state.bookmarks.forEach(id=>{
+        const p = POSTS.find(x=>x.id===id);
+        if(!p) return;
+        const div = document.createElement('div');
+        div.style.marginBottom='8px';
+        div.innerHTML = `<strong style="font-size:14px">${p.title}</strong>
+                         <div style="font-size:13px;color:var(--muted)">${p.date} • ${regionLabel(p.region)}</div>
+                         <button class="small-btn" style="margin-top:6px" onclick="openPost(${p.id})">Xem</button>
+                         <button class="small-btn" style="margin-top:6px" onclick="removeBookmark(${p.id})">Bỏ lưu</button>`;
+        bookmarksList.appendChild(div);
+      });
+    }
+
+    function removeBookmark(id){
+      const i = state.bookmarks.indexOf(id);
+      if(i>-1){ state.bookmarks.splice(i,1); localStorage.setItem('tTetBookmarks', JSON.stringify(state.bookmarks)); renderBookmarks(); renderPosts(); }
+    }
+
+    // Share (simple)
+    function share(id){
+      const p = POSTS.find(x=>x.id===id);
+      navigator.clipboard?.writeText(window.location.href + '#post-' + id).then(()=> alert('Đã copy link tạm: ' + (window.location.href + '#post-' + id)));
+    }
+
+    // Open modal đọc bài
+    function openPost(id){
+      const p = POSTS.find(x=>x.id===id);
+      if(!p) return;
+      modalRoot.innerHTML = `
+        <div class="modal-bg" onclick="closeModal()">
+          <div class="modal" onclick="event.stopPropagation()">
+            <button style="float:right;border:0;background:transparent;font-size:18px;cursor:pointer" onclick="closeModal()">✕</button>
+            <h2>${p.title}</h2>
+            <div style="color:var(--muted); margin-bottom:8px">${p.date} • ${regionLabel(p.region)} • ${p.category === 'analysis' ? 'Phân tích' : p.category === 'commentary' ? 'Bình luận' : 'Tin tức'}</div>
+            <div>${p.content}</div>
+
+            <div class="comments">
+              <h4 style="margin-top:14px">Bình luận</h4>
+              <div id="commentsArea"></div>
+              <div style="margin-top:8px; display:flex; gap:8px;">
+                <input id="commentInput" placeholder="Viết bình luận..." style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.08)" />
+                <button class="small-btn" onclick="postComment(${p.id})">Gửi</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      modalRoot.classList.remove('hidden');
+      // load comments from localStorage
+      renderCommentsForPost(p.id);
+    }
+
+    function closeModal(){
+      modalRoot.innerHTML = '';
+      modalRoot.classList.add('hidden');
+    }
+
+    // comment storage (per-post in localStorage)
+    function postComment(postId){
+      const txt = document.getElementById('commentInput').value.trim();
+      if(!txt) return alert('Viết gì đó đã nhé!');
+      const key = 'tTetComments_' + postId;
+      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+      arr.push({text:txt, at: new Date().toLocaleString()});
+      localStorage.setItem(key, JSON.stringify(arr));
+      document.getElementById('commentInput').value = '';
+      renderCommentsForPost(postId);
+    }
+
+    function renderCommentsForPost(postId){
+      const key = 'tTetComments_' + postId;
+      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+      const area = document.getElementById('commentsArea');
+      if(!area) return;
+      area.innerHTML = '';
+      if(arr.length === 0){ area.innerHTML = '<div style="color:var(--muted)">Chưa có bình luận nào.</div>'; return; }
+      arr.forEach(c=>{
+        const d = document.createElement('div');
+        d.className = 'comment';
+        d.innerHTML = `<div style="font-size:13px;color:var(--muted)">${c.at}</div><div style="margin-top:6px">${escapeHtml(c.text)}</div>`;
+        area.appendChild(d);
+      });
+    }
+
+    function escapeHtml(s){ return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    // subscribe
+    function subscribe(){
+      const email = document.getElementById('emailSub').value.trim();
+      if(!email) return alert('Nhập email trước nhé');
+      // lưu tạm (demo)
+      const list = JSON.parse(localStorage.getItem('tTetSubscribers')||'[]');
+      list.push({email, at:new Date().toLocaleString()});
+      localStorage.setItem('tTetSubscribers', JSON.stringify(list));
+      alert('Cảm ơn! Email đã được lưu.');
+      document.getElementById('emailSub').value = '';
+    }
+
+    // dark mode toggle
+    const darkToggle = document.getElementById('darkToggle');
+    darkToggle.addEventListener('click', ()=>{
+      document.documentElement.classList.toggle('dark');
+      darkToggle.innerText = document.documentElement.classList.contains('dark') ? '☀️ Light' : '🌙 Dark';
+    });
+
+    // helpers for UI
+    function applyQuick(tag){ document.getElementById('searchInput').value = tag; applyFilters(); }
+
+    // init
+    document.addEventListener('DOMContentLoaded', ()=>{
+      renderPosts();
+      renderBookmarks();
+    });
+
+    // expose minimal functions to window for onclick inline
+    window.filterByCategory = filterByCategory;
+    window.applyFilters = applyFilters;
+    window.clearFilters = clearFilters;
+    window.openPost = openPost;
+    window.closeModal = closeModal;
+    window.toggleLike = toggleLike;
+    window.toggleBookmark = toggleBookmark;
+    window.share = share;
+    window.applyQuick = applyQuick;
+    window.postComment = postComment;
+    window.subscribe = subscribe;
+    window.removeBookmark = removeBookmark;
+    window.renderPosts = renderPosts;
+  </script>
+  <footer style="background:#222; color:#eee; padding:40px 20px; margin-top:40px;">
+  <div style="display:flex; flex-wrap:wrap; gap:40px; max-width:1000px; margin:auto;">
+    
+    <!-- About Me -->
+    <div style="flex:1; min-width:250px;">
+      <h3>About Me</h3>
+      <p>Xin chào! Tôi là một người trẻ yêu thích khám phá và tìm hiểu những nét đẹp văn hoá Việt Nam. Đây là website cá nhân nơi tôi chia sẻ góc nhìn, kiến thức và cảm nhận của mình về những giá trị truyền thống. Với tôi, mỗi câu chuyện, mỗi món ăn đều mang trong mình ký ức và ý nghĩa đặc biệt. Website này không nhằm mục đích thương mại, mà đơn giản chỉ là một “góc nhỏ” để tôi ghi lại những điều thân quen, đồng thời lan toả tình yêu dành cho văn hoá Việt đến với mọi người. </p>
+    </div>
+    
+    <!-- Contact -->
+    <div style="flex:1; min-width:250px;">
+      <h3>Contact with me</h3>
+      <p>Email: <a href="mailto:yourmail@example.com" style="color:#ffcc00;">doantrang3129393@gmail.com</a></p>
+      <p>Zalo: <a href="https://zalo.com/yourprofile" target="_blank" style="color:#ffcc00;">0338206626</a></p>
+      <p>Facebook: <a href="https://facebook.com/lt-kien3" target="_blank" style="color:#ffcc00;">https://www.facebook.com/share/1LXPsV1RAY/?mibextid=wwXIfr</a></p>
+    </div>
+
+  </div>
+  
+  <div style="text-align:center; margin-top:20px; font-size:14px; color:#aaa;">
+    © 2025 -SV thực hiện Đoàn Thị Đoan Trang <br>
+    Mã sinh viên: B23DVQT060  <br>
+    Lớp: D23VQT02-B  
+
+  </div>
+</footer>
+
+</body>
+</html>
